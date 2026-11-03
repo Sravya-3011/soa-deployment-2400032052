@@ -1,65 +1,44 @@
 package com.klef.ms.configuration;
 
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.klef.ms.security.JwtFilter;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.servers.Server;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 
 @Configuration
-@EnableWebSecurity
-@EnableMethodSecurity
-public class SecurityConfig 
+public class SwaggerConfig
 {
     @Bean
-    PasswordEncoder passwordEncoder() 
+    public OpenAPI customOpenAPI()
     {
-        return new BCryptPasswordEncoder();
-    }
+        SecurityScheme securityScheme = new SecurityScheme()
+                .type(SecurityScheme.Type.HTTP)
+                .scheme("bearer")
+                .bearerFormat("JWT")
+                .in(SecurityScheme.In.HEADER)
+                .name("Authorization");
 
-    @Bean
-    SecurityFilterChain securityFilterChain(
-        HttpSecurity http,
-        JwtFilter jwtFilter) throws Exception 
-    {
-        http
-            .csrf(csrf -> csrf.disable())
-            .formLogin(form -> form.disable())
-            .httpBasic(httpBasic -> httpBasic.disable())
+        SecurityRequirement securityRequirement = new SecurityRequirement()
+                .addList("bearerAuth");
 
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(
-                    SessionCreationPolicy.STATELESS
-                )
-            )
-
-            .authorizeHttpRequests(auth -> auth
-
-                .requestMatchers(
-                    "/user/",
-                    "/user/test",
-                    "/user/add",
-                    "/user/login",
-                    "/swagger-ui/**",
-                    "/v3/api-docs/**",
-                    "/actuator/**"
-                ).permitAll()
-                                   
-                .anyRequest().authenticated()
-            )
-
-            .addFilterBefore(
-                jwtFilter,
-                UsernamePasswordAuthenticationFilter.class
-            );
-
-        return http.build();
+        return new OpenAPI()
+                .components(new Components().addSecuritySchemes("bearerAuth", securityScheme))
+                .security(List.of(securityRequirement))
+                .servers(List.of(new Server().url("/")))
+                .info(new Info()
+                        .title("User Service API")
+                        .version("1.0")
+                        .description("REST API Documentation")
+                        .contact(new Contact()
+                                .name("KLUniversity")
+                                .email("demo@kluniversity.in")));
     }
 }
